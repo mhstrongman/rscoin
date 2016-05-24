@@ -63,8 +63,8 @@ main :: IO ()
 main = do
     BankBenchOptions{..} <- getRecord "rscoin-bench-bank"
     let mintettesNumber   = unHelpful mintettes
-    let globalSeverity    = maybe Warning id $ unHelpful severity
-    let bSeverity         = maybe Debug   id $ unHelpful benchSeverity
+    let globalSeverity    = maybe Error id $ unHelpful severity
+    let bSeverity         = maybe Info  id $ unHelpful benchSeverity
     withSystemTempDirectory tempBenchDirectory $ \benchDir -> do
         initLogging globalSeverity
         initBenchLogger bSeverity
