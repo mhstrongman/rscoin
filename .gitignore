@@ -9,10 +9,13 @@ bank-db/
 mintette-db/
 tmp/
 
-# heap dumps
+# profiling dumps
+*.prof
 *.hp
 *.ps
 *.aux
+*.svg
+*.folded
 
 # MAC OS X
 .DS_Store
