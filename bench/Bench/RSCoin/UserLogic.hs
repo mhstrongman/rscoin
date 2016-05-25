@@ -8,7 +8,7 @@ module Bench.RSCoin.UserLogic
         ) where
 
 
-import           Control.Monad              (forM_, when)
+import           Control.Monad              (forM_, replicateM, when)
 import           Control.Monad.Catch        (bracket)
 import           Control.Monad.Trans        (liftIO)
 import           Data.Acid                  (createCheckpoint)
@@ -19,7 +19,8 @@ import           System.FilePath            ((</>))
 
 import           Serokell.Util              (indexModulo)
 
-import           RSCoin.Core                (Coin (..), bankSecretKey)
+import           RSCoin.Core                (Address (..), Coin (..),
+                                             bankSecretKey, keyGen)
 
 import           RSCoin.Timed               (MsgPackRpc, runRealMode)
 import qualified RSCoin.User.AcidState      as A
@@ -30,8 +31,8 @@ import           RSCoin.User.Wallet         (UserAddress, toAddress)
 import           Bench.RSCoin.FilePathUtils (dbFormatPath)
 import           Bench.RSCoin.Logging       (logDebug, logInfo)
 
-transactionNum :: Int64
-transactionNum = 1000
+transactionNum :: Num a => a
+transactionNum = 50
 
 userThread :: FilePath -> (Int64 -> A.RSCoinUserState -> MsgPackRpc a) -> Int64 -> IO a
 userThread benchDir userAction userId = runRealMode $ bracket
@@ -54,7 +55,7 @@ initializeUser userId userState = do
     queryMyAddress userState <*
         logDebug (sformat ("Initialized user " % int % "…") userId)
 
-executeTransaction :: A.RSCoinUserState -> Int64 -> UserAddress -> MsgPackRpc ()
+executeTransaction :: A.RSCoinUserState -> Int64 -> Address -> MsgPackRpc ()
 executeTransaction userState coinAmount addrToSend = do
     () <$ updateBlockchain userState False
     formTransactionRetry
@@ -62,7 +63,7 @@ executeTransaction userState coinAmount addrToSend = do
         userState
         False
         inputMoneyInfo
-        (toAddress addrToSend)
+        addrToSend
         outputMoney
   where
     outputMoney = Coin coinAmount
@@ -72,27 +73,28 @@ executeTransaction userState coinAmount addrToSend = do
 -- every user from list.
 initializeBank :: [UserAddress] -> A.RSCoinUserState -> MsgPackRpc ()
 initializeBank userAddresses bankUserState = do
+    addresses <- map (Address . snd) <$> replicateM transactionNum (liftIO keyGen)
     let additionalBankAddreses = 0
     logDebug "Before initStateBank"
     A.initStateBank bankUserState additionalBankAddreses bankSecretKey
     logDebug "After initStateBank"
-    forM_ userAddresses $ executeTransaction bankUserState transactionNum
+    forM_ addresses $ executeTransaction bankUserState transactionNum
     logDebug "Sent initial coins from bank to users"
 
 -- | Start user with provided addresses of other users and do
 -- `transactionNum` transactions.
 benchUserTransactions :: [UserAddress] -> Int64 -> A.RSCoinUserState -> MsgPackRpc ()
-benchUserTransactions allAddresses userId userState = do
-    myAddress <- queryMyAddress userState
-    let otherAddresses = filter (/= myAddress) allAddresses
-        loggingStep = transactionNum `div` 5
-    forM_ [0 .. transactionNum - 1] $
-        \i ->
-             do when (i /= 0 && i `mod` loggingStep == 0) $
-                    logInfo $
-                    sformat
-                        ("User " % int % " has executed " % int %
-                         " transactions")
-                        userId
-                        i
-                executeTransaction userState 1 . (otherAddresses `indexModulo`) $ i
+benchUserTransactions allAddresses userId userState = do undefined
+    -- myAddress <- queryMyAddress userState
+    -- let otherAddresses = filter (/= myAddress) allAddresses
+    --     loggingStep = transactionNum `div` 5
+    -- forM_ [0 .. transactionNum - 1] $
+    --     \i ->
+    --          do when (i /= 0 && i `mod` loggingStep == 0) $
+    --                 logInfo $
+    --                 sformat
+    --                     ("User " % int % " has executed " % int %
+    --                      " transactions")
+    --                     userId
+    --                     i
+    --             executeTransaction userState 1 . (otherAddresses `indexModulo`) $ i

@@ -53,14 +53,21 @@ initializeUsers benchDir userIds = do
     logInfo $ sformat ("Initializing " % build % " users…") $ length userIds
     mapM initUserAction userIds
 
-initializeSuperUser :: FilePath -> [UserAddress] -> IO ()
+initializeSuperUser :: FilePath -> [UserAddress] -> IO (TimeSpec, TimeSpec)
 initializeSuperUser benchDir userAddresses = do
     -- give money to all users
     let bankId = 0
     logInfo "Initializaing user in bankMode…"
+    cpuTimeBefore <- getTime ProcessCPUTime
+    wallTimeBefore <- getTime Realtime
     userThread benchDir (const $ initializeBank userAddresses) bankId
+    wallTimeAfter <- getTime Realtime
+    cpuTimeAfter <- getTime ProcessCPUTime
     logInfo "Initialized user in bankMode, now waiting for the end of the period…"
-    threadDelay $ fromInteger $ toMicroseconds (periodDelta + 1)
+    -- threadDelay $ fromInteger $ toMicroseconds (periodDelta + 1)
+    return
+        ( cpuTimeAfter `diffTimeSpec` cpuTimeBefore
+        , wallTimeAfter `diffTimeSpec` wallTimeBefore)
 
 runTransactions :: FilePath -> [UserAddress] -> [Int64] -> IO (TimeSpec, TimeSpec)
 runTransactions benchDir userAddresses userIds = do
@@ -88,9 +95,10 @@ main = do
         initBenchLogger bSeverity
 
         let userIds    = [1 .. fromIntegral userNumber]
-        userAddresses <- initializeUsers benchDir userIds
-        initializeSuperUser benchDir userAddresses
+        -- userAddresses <- initializeUsers benchDir userIds
+        -- initializeSuperUser benchDir userAddresses
 
-        (cpuTime, wallTime) <- runTransactions benchDir userAddresses userIds
+        -- (cpuTime, wallTime) <- runTransactions benchDir userAddresses userIds
+        (cpuTime, wallTime) <- initializeSuperUser benchDir undefined
         logInfo $ sformat ("Elapsed CPU time: " % shown) cpuTime
         logInfo $ sformat ("Elapsed wall-clock time: " % shown) wallTime
