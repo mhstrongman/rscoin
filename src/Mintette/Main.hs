@@ -1,10 +1,10 @@
-import           Control.Monad.Catch    (bracket)
-import           Control.Monad.Trans    (liftIO)
-import           RSCoin.Core            (initLogging, readSecretKey)
-import qualified RSCoin.Mintette        as M
-import           RSCoin.Timed           (runRealMode, fork_)
+import           Control.Monad.Catch (bracket)
+import           Control.Monad.Trans (liftIO)
+import           RSCoin.Core         (initLogging, readSecretKey)
+import qualified RSCoin.Mintette     as M
+import           RSCoin.Timed        (fork_, runRealMode)
 
-import qualified Options                as Opts
+import qualified Options             as Opts
 
 main :: IO ()
 main = do
@@ -12,7 +12,7 @@ main = do
     initLogging cloLogSeverity
     sk <- readSecretKey cloSecretKeyPath
     runRealMode $
-        bracket (liftIO $ M.openState cloPath) (liftIO . M.closeState) $
+        bracket (liftIO $ M.openMemState) (liftIO . M.closeState) $
             \st -> do
                 fork_ $ M.runWorker sk st
                 M.serve cloPort st sk

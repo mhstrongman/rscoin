@@ -51,10 +51,10 @@ bankPort :: Num a => a
 bankPort = defaultPort
 
 periodDelta :: Second
-periodDelta = 15
+periodDelta = 1500
 
 epochDelta :: Second
-epochDelta = 5
+epochDelta = 500
 
 emissionHash :: Binary t => t -> Hash
 emissionHash a =
