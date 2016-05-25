@@ -21,12 +21,13 @@ import           Options.Generic
 import           System.IO.Temp             (withSystemTempDirectory)
 
 import           RSCoin.Core                (PublicKey, SecretKey,
-                                             Severity (..), initLogging, keyGen)
+                                             Severity (..), initLogging, keyGen,
+                                             periodDelta)
 import           RSCoin.User.Wallet         (UserAddress)
 
 import           Bench.RSCoin.FilePathUtils (tempBenchDirectory)
-import           Bench.RSCoin.InfraThreads  (addMintette, bankThread,
-                                             defaultBenchPeriod, mintetteThread)
+-- import           Bench.RSCoin.InfraThreads  (addMintette, bankThread,
+--                                              defaultBenchPeriod, mintetteThread)
 import           Bench.RSCoin.Logging       (initBenchLogger, logInfo)
 import           Bench.RSCoin.UserLogic     (benchUserTransactions,
                                              initializeBank, initializeUser,
@@ -59,7 +60,7 @@ initializeSuperUser benchDir userAddresses = do
     logInfo "Initializaing user in bankMode…"
     userThread benchDir (const $ initializeBank userAddresses) bankId
     logInfo "Initialized user in bankMode, now waiting for the end of the period…"
-    threadDelay $ fromInteger $ toMicroseconds (defaultBenchPeriod + 1)
+    threadDelay $ fromInteger $ toMicroseconds (periodDelta + 1)
 
 runTransactions :: FilePath -> [UserAddress] -> [Int64] -> IO (TimeSpec, TimeSpec)
 runTransactions benchDir userAddresses userIds = do
