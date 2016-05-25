@@ -46,28 +46,6 @@ instance ParseRecord BenchOptions
 
 type KeyPairList = [(SecretKey, PublicKey)]
 
-generateMintetteKeys :: Int -> IO KeyPairList
-generateMintetteKeys n = replicateM n keyGen
-
-runMintettes :: FilePath -> KeyPairList -> IO ()
-runMintettes benchDir secretKeys
-    = forM_ (zip [1..] secretKeys) $ \(mintetteId, (secretKey, publicKey)) -> do
-        addMintette mintetteId benchDir publicKey
-        void $ forkIO $ mintetteThread mintetteId benchDir secretKey
-
-establishMintettes :: FilePath -> Int -> IO ()
-establishMintettes benchDir mintettesNumber = do
-    keyPairs <- generateMintetteKeys mintettesNumber
-    runMintettes benchDir keyPairs
-    logInfo $ sformat ("Running " % build % " mintettes…") mintettesNumber
-    threadDelay $ 5 * 10 ^ (6 :: Int)
-
-establishBank :: FilePath -> IO ()
-establishBank benchDir = do
-    _ <- forkIO $ bankThread benchDir
-    logInfo "Running bank..."
-    threadDelay $ 3 * 10 ^ (6 :: Int)
-
 initializeUsers :: FilePath -> [Int64] -> IO [UserAddress]
 initializeUsers benchDir userIds = do
     let initUserAction = userThread benchDir initializeUser
@@ -107,9 +85,6 @@ main = do
     withSystemTempDirectory tempBenchDirectory $ \benchDir -> do
         initLogging globalSeverity
         initBenchLogger bSeverity
-
-        establishMintettes benchDir mintettesNumber
-        establishBank      benchDir
 
         let userIds    = [1 .. fromIntegral userNumber]
         userAddresses <- initializeUsers benchDir userIds

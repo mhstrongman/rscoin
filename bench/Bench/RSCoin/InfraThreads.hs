@@ -25,17 +25,6 @@ import           System.FilePath            ((</>))
 defaultBenchPeriod :: Second
 defaultBenchPeriod = 7
 
-bankBracket :: FilePath -> (B.State -> MsgPackRpc a) -> IO a
-bankBracket benchDir bankAction = runRealMode $ bracket
-    (liftIO $ B.openState $ benchDir </> "bank-db")
-    (liftIO . B.closeState)
-    bankAction
-
-addMintette :: Int -> FilePath -> PublicKey -> IO ()
-addMintette mintetteId benchDir publicKey = bankBracket benchDir $ \bankState -> liftIO $ do
-    let mintette = Mintette bankHost (defaultPort + mintetteId)
-    update bankState $ B.AddMintette mintette publicKey
-
 bankThread :: FilePath -> IO ()
 bankThread benchDir = bankBracket benchDir $ \bankState -> do
     _ <- fork $ B.runWorkerWithPeriod defaultBenchPeriod bankSecretKey bankState
